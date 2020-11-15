@@ -84,30 +84,64 @@ public class GraphVizMain {
 	/***************CONSTRUCTION DU GRAPH************************************/
 		
 
-		Map<String, CtMethod> mapMethds = new HashMap<String, CtMethod>();
+		Map<String, CtClass> mapClasses = new HashMap<String, CtClass>();
 		
 		
-		for(CtClass class1 : classList) {
-			//graphDeDependances.add(mutNode(class1.getSimpleName()));
-			Set<CtMethod> methods = class1.getMethods();
-			//AMODIFIER POUR VOIR APRES DIFF
-			for(CtMethod method : methods){
-				mapMethds.put(method.getSimpleName().trim(), method);
-				//System.out.println(method.getSimpleName());
-				}
+		for(CtClass cls : classList) {
+			mapClasses.put(cls.getSimpleName(), cls);
 		}
 		
 		
 		
 		HashMap<String, Integer> maprelation = new HashMap<String, Integer>();
+		int poidsTotal = 0;
 		
 		for(CtClass class1 : classList) {
 			//graphDeDependances.add(mutNode(class1.getSimpleName()));
 			Set<CtMethod> methods = class1.getMethods();
 			//AMODIFIER POUR VOIR APRES DIFF
-			for(CtMethod method : methods) {
-				for(CtInvocation invocation : method.getElements(new TypeFilter<CtInvocation>(CtInvocation.class))){
-					String mthName = invocation.toString();
+			String nomClass1 = class1.getSimpleName();
+			for(CtMethod method1 : methods) {
+				//System.out.println(class1.getSimpleName()+"======================="+method.getSimpleName());
+				String nomMethod1 = method1.getSimpleName();
+				for(CtInvocation invocation : method1.getElements(new TypeFilter<CtInvocation>(CtInvocation.class))){
+					String nomMethod2 = invocation.getExecutable().getSimpleName();
+					String nomClass2 = "";
+					if(invocation.getExecutable().isStatic()) {
+						nomClass2 = invocation.getTarget().toStringDebug();
+						//nomClass2 = split(nomClass2,".");
+						
+					}else {
+						nomClass2 = invocation.getTarget().getType().toString();
+						
+					}
+					String[] tab = nomClass2.split("\\.");
+					if(tab.length > 0) {
+						nomClass2 = tab[tab.length -1];
+					}
+						
+					if((!nomClass1.equals(nomClass2)) && (mapClasses.containsKey(nomClass2.trim())) ) {
+						String cle = nomClass1+"="+nomClass2;
+						String cle2 = nomClass2+"="+nomClass1;
+						if(maprelation.containsKey(cle)) {
+							int poids = maprelation.get(cle);
+							maprelation.put(cle, poids+1);
+						}else if(maprelation.containsKey(cle2)) {
+							int poids = maprelation.get(cle2);
+							maprelation.put(cle2, poids+1);
+						}
+						
+						else {
+							maprelation.put(cle, 1);
+						}
+						poidsTotal++;
+					}
+					else {
+						System.out.println("=============================="+nomClass2);
+					}
+					
+					
+					/*String mthName = invocation.toString();
 					String[ ] mthNames = mthName.split("\\.");
 					if(mthNames.length > 1) {
 						mthName = mthNames[1];
@@ -124,6 +158,7 @@ public class GraphVizMain {
 						
 						if(!class1.getSimpleName().contentEquals(class2.getSimpleName())) {
 							String cle = class1.getSimpleName()+"="+class2.getSimpleName();
+							//System.out.println(">>>>"+ctMethod2.getSimpleName()+"==="+class2.getSimpleName()+"==============================>"+method.getSimpleName());
 							if(maprelation.containsKey(cle)) {
 								int poids = maprelation.get(cle);
 								maprelation.put(cle, poids+1);
@@ -131,7 +166,8 @@ public class GraphVizMain {
 								maprelation.put(cle, 1);
 							}
 
-					}}
+						}
+					}*/
 				}	
 			}
 		}
@@ -139,7 +175,8 @@ public class GraphVizMain {
 		
 		PrintWriter pr = new PrintWriter(new FileWriter("sortie-de-graphe.dot")); 
 		
-		pr.println("digraph G {");
+		pr.println("graph G {");
+
 		
 		for(String cle : maprelation.keySet()) {
 			String nomCls1 = cle.split("=")[0];
@@ -147,12 +184,13 @@ public class GraphVizMain {
 			
 			int poids = maprelation.get(cle);
 			
-			System.out.println(nomCls1+" ==> "+nomCls2+" Métrique : "+poids);
+			System.out.println(nomCls1+" ==> "+nomCls2+" Métrique : "+((double) poids/poidsTotal));
 			
-			pr.println(nomCls1+" -> "+nomCls2+" [label=\" "+poids+" \"]; ");
+			pr.println(nomCls1+" -- "+nomCls2+" [label=\" "+((double) poids/poidsTotal)+" \"]; ");
 			
 			graphDeDependances.add(mutNode(nomCls1).addLink(mutNode(nomCls2)));
 		}
+
 		
 		
 		pr.println("}");
@@ -167,6 +205,7 @@ public class GraphVizMain {
 			e.printStackTrace();
 		}
 		
+		System.out.println("POID TOTAL : "+poidsTotal);
 		
 	}
 }
