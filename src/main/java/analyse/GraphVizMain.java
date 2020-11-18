@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,8 @@ import guru.nidi.graphviz.engine.Format;
 import guru.nidi.graphviz.engine.Graphviz;
 import guru.nidi.graphviz.model.Graph;
 import guru.nidi.graphviz.model.MutableGraph;
+import model.Noeud;
+import model.Relation;
 import spoon.Launcher;
 import spoon.MavenLauncher;
 import spoon.compiler.Environment;
@@ -96,6 +99,8 @@ public class GraphVizMain {
 		HashMap<String, Integer> maprelation = new HashMap<String, Integer>();
 		int poidsTotal = 0;
 		
+		List<Relation> lisRelation = new ArrayList<Relation>();
+		
 		for(CtClass class1 : classList) {
 			//graphDeDependances.add(mutNode(class1.getSimpleName()));
 			Set<CtMethod> methods = class1.getMethods();
@@ -136,38 +141,6 @@ public class GraphVizMain {
 						}
 						poidsTotal++;
 					}
-					else {
-						System.out.println("=============================="+nomClass2);
-					}
-					
-					
-					/*String mthName = invocation.toString();
-					String[ ] mthNames = mthName.split("\\.");
-					if(mthNames.length > 1) {
-						mthName = mthNames[1];
-					}else if(mthNames.length > 0){
-						mthName = mthNames[0];
-					}
-					mthName = mthName.split("\\(")[0];
-				
-					//System.out.println(mthName);
-					if(mapMethds.containsKey(mthName)) {
-						CtMethod ctMethod2 = mapMethds.get(mthName);
-						CtClass class2 = ctMethod2.getParent(CtClass.class);
-						
-						
-						if(!class1.getSimpleName().contentEquals(class2.getSimpleName())) {
-							String cle = class1.getSimpleName()+"="+class2.getSimpleName();
-							//System.out.println(">>>>"+ctMethod2.getSimpleName()+"==="+class2.getSimpleName()+"==============================>"+method.getSimpleName());
-							if(maprelation.containsKey(cle)) {
-								int poids = maprelation.get(cle);
-								maprelation.put(cle, poids+1);
-							}else {
-								maprelation.put(cle, 1);
-							}
-
-						}
-					}*/
 				}	
 			}
 		}
@@ -183,18 +156,80 @@ public class GraphVizMain {
 			String nomCls2 = cle.split("=")[1];
 			
 			int poids = maprelation.get(cle);
+			double p = (double) poids/poidsTotal;
 			
-			System.out.println(nomCls1+" ==> "+nomCls2+" Métrique : "+((double) poids/poidsTotal));
+			lisRelation.add(new Relation(nomCls1, nomCls2, p));
+			pr.println(nomCls1+" -- "+nomCls2+" [label=\" "+p+" \"]; ");
 			
-			pr.println(nomCls1+" -- "+nomCls2+" [label=\" "+((double) poids/poidsTotal)+" \"]; ");
-			
-			graphDeDependances.add(mutNode(nomCls1).addLink(mutNode(nomCls2)));
 		}
 
 		
 		
 		pr.println("}");
 		pr.close();
+		
+		List<Noeud> listNoeud = new ArrayList<Noeud>();
+		for(Relation r : lisRelation) {
+			Noeud n1 = listNoeud.stream().filter(no -> no.getClasses().contains(r.getClass1())).findAny().orElse(null);
+			Noeud n2 = listNoeud.stream().filter(no -> no.getClasses().contains(r.getClass2())).findAny().orElse(null);
+			
+			if(n1 == null) {
+				Noeud node = new Noeud();
+				node.addClasse(r.getClass1());
+				listNoeud.add(node);
+			}
+			
+			if(n2 == null) {
+				Noeud node = new Noeud();
+				node.addClasse(r.getClass2());
+				listNoeud.add(node);
+			}
+		}
+		
+		
+		int siz = listNoeud.size();
+		while (siz > 1) {
+			System.out.println("JE RENTRE  ");
+			double poidsMax = 0;
+			
+			
+			int i = 0;
+			int j = 0;
+		
+			for(Relation r : lisRelation) {
+				if(r.getPoids() > poidsMax) {
+					poidsMax = r.getPoids();
+					j = i;
+				}
+				i++;
+			}
+			
+			
+			
+			try {
+				Relation relationMax = lisRelation.get(j);
+				lisRelation.remove(j);
+				
+				List<String> clss1  = listNoeud.stream().filter(no -> no.getClasses().contains(relationMax.getClass1())).findFirst().get().getClasses();
+				List<String> clss  = listNoeud.stream().filter(no -> no.getClasses().contains(relationMax.getClass2())).findFirst().get().getClasses();
+				
+				for(String n : clss) {
+					clss1.add(n);
+				}
+				
+				Noeud n2 = listNoeud.stream().filter(no -> no.getClasses().contains(relationMax.getClass2())).findAny().orElse(null);
+				listNoeud.remove(n2);
+				
+				siz = listNoeud.size();
+				
+			}catch (Exception e) {
+				System.out.println("  ");
+			}
+			
+			
+		}
+		
+		
 		
 		
 		try {
@@ -204,8 +239,7 @@ public class GraphVizMain {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		System.out.println("POID TOTAL : "+poidsTotal);
+
 		
 	}
 }
