@@ -187,9 +187,8 @@ public class GraphVizMain {
 		}
 		
 		
-		int siz = listNoeud.size();
-		while (siz > 1) {
-			System.out.println("JE RENTRE  ");
+		while (listNoeud.size() > 1 && lisRelation.size()>0) {
+			System.out.println("TAILLE LISTE " + listNoeud.size());
 			double poidsMax = 0;
 			
 			
@@ -204,31 +203,32 @@ public class GraphVizMain {
 				i++;
 			}
 			
+			Relation relationMax = lisRelation.get(j);
+			lisRelation.remove(j);
 			
 			
-			try {
-				Relation relationMax = lisRelation.get(j);
-				lisRelation.remove(j);
-				
-				List<String> clss1  = listNoeud.stream().filter(no -> no.getClasses().contains(relationMax.getClass1())).findFirst().get().getClasses();
-				List<String> clss  = listNoeud.stream().filter(no -> no.getClasses().contains(relationMax.getClass2())).findFirst().get().getClasses();
-				
-				for(String n : clss) {
-					clss1.add(n);
+			int i0 = 0, j1 = 0, j2 = 0;
+			
+			for(Noeud n : listNoeud) {
+				if(n.getClasses().contains(relationMax.getClass1())) {
+					j1 = i0;
+				}else if(n.getClasses().contains(relationMax.getClass2())){
+					j2 = i0;
 				}
-				
-				Noeud n2 = listNoeud.stream().filter(no -> no.getClasses().contains(relationMax.getClass2())).findAny().orElse(null);
-				listNoeud.remove(n2);
-				
-				siz = listNoeud.size();
-				
-			}catch (Exception e) {
-				System.out.println("  ");
+				i0++;
 			}
 			
+			Noeud n1 = listNoeud.get(j1);
+			Noeud n2 = listNoeud.get(j2);
 			
+			for(String clsName : n2.getClasses()) {
+				n1.addClasse(clsName);
+			}
+			
+			listNoeud.remove(j2);
 		}
 		
+		System.out.println("END ALGO 1");
 		
 		
 		
